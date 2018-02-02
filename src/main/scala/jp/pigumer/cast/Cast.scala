@@ -60,6 +60,7 @@ object Cast extends App {
       cast.launchApp(defaultMediaReciever)
     cast.load(url.toString)
     cast.play
+    cast.disconnect()
   }).onComplete { done ⇒
     done.fold(
       t ⇒
@@ -67,9 +68,6 @@ object Cast extends App {
       _ ⇒
         ()
     )
-  }
-
-  sys.addShutdownHook {
     ChromeCasts.stopDiscovery
     system.terminate().onComplete(_ ⇒ sys.exit())
   }
