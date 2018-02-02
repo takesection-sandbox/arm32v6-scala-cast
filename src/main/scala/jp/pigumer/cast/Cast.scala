@@ -5,6 +5,7 @@ import java.time.Instant
 import java.util.Date
 
 import akka.actor.{ActorSystem, Props}
+import akka.event.Logging
 import akka.pattern.ask
 import akka.util.Timeout
 import com.amazonaws.services.polly.AmazonPollyAsyncClientBuilder
@@ -23,7 +24,10 @@ object Cast extends App {
   val defaultMediaReciever = "CC1AD845"
 
   val bucketName = sys.env.getOrElse("BUCKET_NAME", "YOUR_BUCKET_NAME")
-  val key = "test.mp3"
+  val key = sys.env.getOrElse("KEY", "test.mp3")
+  val text = sys.env.getOrElse("TEXT", "Hello World")
+
+  val castAddress = sys.env.get("ADDRESS")
 
   ChromeCasts.startDiscovery
 
@@ -33,9 +37,16 @@ object Cast extends App {
   val discoverer = system.actorOf(Props[Discoverer], "discoverer")
   val speech = system.actorOf(Props(classOf[Speech], polly))
 
+  val logger = Logging(system, this.getClass.getName)
+
   (for {
-    cast <- (discoverer ? "Google-Home").mapTo[ChromeCast]
-    mp3 <- (speech ? "test").mapTo[Array[Byte]]
+    cast <-
+      castAddress.map { address ⇒
+        Future(new ChromeCast(address))
+      }.getOrElse {
+        (discoverer ? "Google-Home").mapTo[ChromeCast]
+      }
+    mp3 <- (speech ? text).mapTo[Array[Byte]]
     url <- Future {
       val meta = new ObjectMetadata()
       meta.setContentType("audio/mp3")
@@ -52,7 +63,7 @@ object Cast extends App {
   }).onComplete { done ⇒
     done.fold(
       t ⇒
-        t.printStackTrace(),
+        logger.error(t, "done"),
       _ ⇒
         ()
     )

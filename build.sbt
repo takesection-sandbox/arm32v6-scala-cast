@@ -13,6 +13,7 @@ lazy val root = (project in file("."))
       awsPolly,
       awsS3
     ),
-    dockerBaseImage := "java:8-jdk-alpine",
+    dockerBaseImage := "arm32v6/openjdk:8-jre-alpine",
+    daemonUser in Docker := "root",
     mainClass in assembly := Some("jp.pigumer.cast.Cast")
   )
