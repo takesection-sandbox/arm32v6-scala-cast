@@ -33,7 +33,7 @@ object Cast extends App {
 
   val system = ActorSystem("castExample")
   implicit val executionContext: ExecutionContext = system.dispatcher
-  implicit val timeout: Timeout = 10 seconds
+  implicit val timeout: Timeout = 300 seconds
   val discoverer = system.actorOf(Props[Discoverer], "discoverer")
   val speech = system.actorOf(Props(classOf[Speech], polly))
 
