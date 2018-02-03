@@ -5,6 +5,16 @@ AWS Pollyで作った音声ファイルを Google Home で再生する
 
 * [chromecast-java-api-v2](https://github.com/vitalidze/chromecast-java-api-v2)
 
+# Docker
+
+* [DOCKER COMES TO RASPBERRY PI](https://www.raspberrypi.org/blog/docker-comes-to-raspberry-pi/)
+
+```sh
+$ sudo -s
+# apt remove docker docker-engine docker.io -y
+# curl -sSL https://get.docker.com | sh
+```
+
 # Build
 
 ```sh
