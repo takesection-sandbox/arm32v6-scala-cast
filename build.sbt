@@ -10,6 +10,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       cast,
       akkaActor,
+      akkaStream,
       awsPolly,
       awsS3
     ),
