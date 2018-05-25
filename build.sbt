@@ -8,11 +8,13 @@ lazy val root = (project in file("."))
     version := "0.0.1-SNAPSHOT",
     scalaVersion := "2.12.4",
     libraryDependencies ++= Seq(
+      mp3spi,
       cast,
       akkaActor,
       akkaStream,
       awsPolly,
-      awsS3
+      akkaStreamTestKit,
+      scalaTest
     ),
     dockerBaseImage := "arm32v6/openjdk:8-jre-alpine",
     daemonUser in Docker := "root",

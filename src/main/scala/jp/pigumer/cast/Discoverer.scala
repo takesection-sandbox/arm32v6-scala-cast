@@ -1,32 +1,21 @@
 package jp.pigumer.cast
 
-import akka.actor.Actor
-import akka.event.Logging
-import su.litvak.chromecast.api.v2.{ChromeCast, ChromeCasts}
+import akka.event.jul.Logger
+import su.litvak.chromecast.api.v2.{ChromeCast, ChromeCasts, ChromeCastsListener}
 
-import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+class Discoverer extends ChromeCastsListener {
 
-class Discoverer extends Actor {
+  private val logger = Logger(this.getClass.getName)
 
-  val logger = Logging(context.system, this)
+  ChromeCasts.registerListener(this)
+  ChromeCasts.startDiscovery()
 
-  @tailrec
-  private def find(name: String): ChromeCast = {
-    val list = ChromeCasts.get.asScala
-    list.find(cast ⇒ cast.getName.startsWith(name)) match {
-      case Some(c) ⇒ c
-      case None ⇒
-        Thread.sleep(500)
-        find(name)
-    }
+  override def newChromeCastDiscovered(chromeCast: ChromeCast): Unit = {
+    logger.info(chromeCast.getName)
   }
 
-  override def receive = {
-    case name: String ⇒ {
-      val cast = find(name)
-      logger.info(cast.getAddress)
-      sender ! cast
-    }
-  }
+  override def chromeCastRemoved(chromeCast: ChromeCast): Unit = ()
+
+  def stopDiscovery =
+    ChromeCasts.stopDiscovery()
 }
