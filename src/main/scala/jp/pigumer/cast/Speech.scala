@@ -16,6 +16,7 @@ class Speech(client: AmazonPollyAsync) extends Actor {
         new AsyncHandler[SynthesizeSpeechRequest, SynthesizeSpeechResult] {
           override def onError(cause: Exception): Unit =
             throw cause
+
           override def onSuccess(request: SynthesizeSpeechRequest, result: SynthesizeSpeechResult): Unit = {
             val audioStream = result.getAudioStream
             val mp3 = Stream.continually(audioStream.read).takeWhile(_ != -1).map(_.toByte).toArray

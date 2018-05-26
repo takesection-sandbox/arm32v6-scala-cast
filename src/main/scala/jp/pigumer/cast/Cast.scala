@@ -2,14 +2,15 @@ package jp.pigumer.cast
 
 import akka.actor.{ActorSystem, Props}
 import akka.event.Logging
+import akka.pattern._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
-import akka.util.{ByteString, Timeout}
+import akka.util.Timeout
 import com.amazonaws.services.polly.AmazonPollyAsyncClientBuilder
-import com.amazonaws.services.polly.model.{OutputFormat, SynthesizeSpeechRequest, VoiceId}
+import su.litvak.chromecast.api.v2.ChromeCast
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 object Cast extends App {
   val region = "ap-northeast-1"
@@ -24,16 +25,19 @@ object Cast extends App {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContext = system.dispatcher
   implicit val timeout: Timeout = 30 seconds
+
+  val discoverer = system.actorOf(Props[Discoverer])
   val speech = system.actorOf(Props(classOf[Speech], polly))
   val logger = Logging(system, this.getClass.getName)
 
-  val request = new SynthesizeSpeechRequest().
-    withOutputFormat(OutputFormat.Mp3).
-    withText("Hello World").
-    withVoiceId(VoiceId.Ivy)
-  val done = Source.single(text)
-    .ask[ByteString](speech)
-    .runWith(Sink.ignore)
+  val done = Source.fromFuture(
+    castAddress.fold(
+      (discoverer ? "Google-Home").mapTo[ChromeCast])(
+      address ⇒ Future(new ChromeCast(address))
+    )
+  )
+    .map(cast => logger.info(s"${cast.getAddress} ${cast.getName}"))
+    .runWith(Sink.head)
 
   done.onComplete { _ ⇒
     system.terminate()

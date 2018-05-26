@@ -12,6 +12,7 @@ lazy val root = (project in file("."))
       cast,
       akkaActor,
       akkaStream,
+      awsS3,
       awsPolly,
       akkaStreamTestKit,
       scalaTest
