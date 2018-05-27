@@ -25,9 +25,8 @@ class PlayerSpec extends TestKit(ActorSystem("Test")) with FlatSpecLike {
       .map(Player.convert)
       .via(Player.play(0))
       .withAttributes(ActorAttributes.dispatcher("akka.stream.blocking-io-dispatcher"))
-      .runWith(Sink.head)
+      .runWith(Sink.ignore)
 
     Await.ready(done, 300 seconds)
-    done.value.get.get
   }
 }
