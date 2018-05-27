@@ -1,11 +1,18 @@
 ChromeCast Scala Example
 ========================
 
-AWS Pollyで作った音声ファイルを Google Home で再生する
+# Create S3 Bucket
+
+```
+$ sbt
+sbt> awscfCreateBucket <Cloudformation Stack Name> <S3 Bucket Name>
+```
+
+# AWS Pollyで作った音声ファイルを Google Home で再生する
 
 * [chromecast-java-api-v2](https://github.com/vitalidze/chromecast-java-api-v2)
 
-# Docker
+## Docker
 
 * [DOCKER COMES TO RASPBERRY PI](https://www.raspberrypi.org/blog/docker-comes-to-raspberry-pi/)
 
@@ -15,7 +22,7 @@ raspberrypi # apt remove docker docker-engine docker.io -y
 raspberrypi # curl -sSL https://get.docker.com | sh
 ```
 
-# Build
+## Build
 
 ```
 mac $ sbt clean docker:stage
@@ -32,7 +39,7 @@ raspberrypi $ cd docker/stage
 raspberrypi $ docker build -t scala-cast:0.0.1-SNAPSHOT ./
 ```
 
-# Run
+## Run
 
 ```
 raspberrypi $ avahi-browse -r _googlecast._tcp -t

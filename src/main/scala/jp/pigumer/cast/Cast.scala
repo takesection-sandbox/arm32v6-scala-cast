@@ -1,25 +1,47 @@
 package jp.pigumer.cast
 
+import java.time.Instant
+import java.util.Date
+
 import akka.actor.{ActorSystem, Props}
 import akka.event.Logging
 import akka.pattern._
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Attributes}
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
-import com.amazonaws.services.polly.AmazonPollyAsyncClientBuilder
+import com.amazonaws.services.polly.{AmazonPollyAsync, AmazonPollyAsyncClientBuilder}
+import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import com.amazonaws.services.s3.model.ObjectMetadata
 import su.litvak.chromecast.api.v2.ChromeCast
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
-object Cast extends App {
+trait S3 {
+  val region: String
+  private val s3: AmazonS3 = AmazonS3ClientBuilder.standard.withRegion(region).build
+
+  protected def getUrl(bucketName: String) = {
+    val key = "hello.mp3"
+    val meta = new ObjectMetadata()
+    meta.setContentType("audio/mp3")
+    s3.generatePresignedUrl(bucketName,
+      key,
+      new Date(Instant.now.plusSeconds(60).toEpochMilli))
+  }
+}
+
+object Cast extends App with S3 {
   val region = "ap-northeast-1"
-  val polly = AmazonPollyAsyncClientBuilder.standard.withRegion(region).build
+  private val polly: AmazonPollyAsync =
+    AmazonPollyAsyncClientBuilder.standard.withRegion(region).build
 
   val defaultMediaReciever = "CC1AD845"
 
   val text: String = sys.env.getOrElse("TEXT", "Hello World")
   val castAddress: Option[String] = sys.env.get("ADDRESS")
+  val bucketName: String = sys.env.getOrElse("BUCKET_NAME", "YOUR BUCKETNAME")
 
   implicit val system = ActorSystem("castExample")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -36,44 +58,18 @@ object Cast extends App {
       address ⇒ Future(new ChromeCast(address))
     )
   )
-    .map(cast => logger.info(s"${cast.getAddress} ${cast.getName}"))
-    .runWith(Sink.head)
-
-  done.onComplete { _ ⇒
-    system.terminate()
-  }
-  /*
-    (for {
-      cast <-
-        castAddress.map { address ⇒
-          Future(new ChromeCast(address))
-        }.getOrElse {
-          (discoverer ? "Google-Home").mapTo[ChromeCast]
-        }
-      mp3 <- (speech ? text).mapTo[Array[Byte]]
-      url <- Future {
-        val meta = new ObjectMetadata()
-        meta.setContentType("audio/mp3")
-        meta.setContentLength(mp3.length)
-        s3.putObject(bucketName, key, new ByteArrayInputStream(mp3), meta)
-        s3.generatePresignedUrl(bucketName, key, new Date(Instant.now.plusSeconds(60).toEpochMilli))
-      }
-    } yield {
-      val status = cast.getStatus
-      if (cast.isAppAvailable(defaultMediaReciever) && !status.isAppRunning(defaultMediaReciever))
-        cast.launchApp(defaultMediaReciever)
-      cast.load(url.toString)
-      cast.play
-      cast.disconnect()
-    }).onComplete { done ⇒
-      done.fold(
-        t ⇒
-          logger.error(t, "done"),
-        _ ⇒
-          ()
-      )
-      ChromeCasts.stopDiscovery
-      system.terminate().onComplete(_ ⇒ sys.exit())
+    .log("source", cast ⇒ s"${cast.getAddress} ${cast.getName}")
+    .withAttributes(Attributes.logLevels(onElement = Logging.InfoLevel))
+    .flatMapConcat { cast ⇒
+      Source.single(getUrl(bucketName)).map(new CastPlayer(cast).play)
     }
-    */
+    .runWith(Sink.ignore)
+
+  done.onComplete {
+    case Success(_) ⇒
+      system.terminate()
+    case Failure(cause) ⇒
+      logger.error(cause, "done")
+      system.terminate()
+  }
 }
