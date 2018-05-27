@@ -41,7 +41,7 @@ object Player {
   }
 
   val play = (index: Int) ⇒
-    Flow[ByteString].map(convert).map { bytes ⇒
+    Flow[ByteString].map { bytes ⇒
       val input = AudioSystem.getAudioInputStream(new ByteArrayInputStream(bytes.toArray))
       val mixer = mixerInfo(index)
       val clip = AudioSystem.getClip(mixer)

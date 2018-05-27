@@ -22,7 +22,9 @@ class PlayerSpec extends TestKit(ActorSystem("Test")) with FlatSpecLike {
     implicit val executionContext = system.dispatcher
 
     val done = FileIO.fromPath(Paths.get("src/main/resources/hello.mp3"))
-      .via(Player.play(0)).withAttributes(ActorAttributes.dispatcher("akka.stream.blocking-io-dispatcher"))
+      .map(Player.convert)
+      .via(Player.play(0))
+      .withAttributes(ActorAttributes.dispatcher("akka.stream.blocking-io-dispatcher"))
       .runWith(Sink.head)
 
     Await.ready(done, 300 seconds)
