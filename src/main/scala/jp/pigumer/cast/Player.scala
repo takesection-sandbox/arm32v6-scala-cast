@@ -47,7 +47,9 @@ object Player {
       val clip = AudioSystem.getClip(mixer)
       clip.open(input)
       clip.start()
-      Thread.sleep(500)
+      while (!clip.isRunning) {
+        Thread.sleep(500)
+      }
       while (clip.isRunning) {
         Thread.sleep(500)
       }
